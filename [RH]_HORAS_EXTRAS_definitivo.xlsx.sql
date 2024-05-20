@@ -223,11 +223,12 @@ FROM
     ENGINE.ACT_HI_TASKINST AHT
 WHERE
     AHT.PROC_INST_ID_ = AHV.PROC_INST_ID_
-    AND TRUNC (AHT.START_TIME_) BETWEEN TO_DATE ('01/01/2024', 'DD/MM/YYYY')
+    AND TRUNC (AHT.START_TIME_) BETWEEN TO_DATE ('01/03/2024', 'DD/MM/YYYY')
     AND TRUNC (SYSDATE)+1 
-    AND (AHV.Id_solicitante = '%' OR '%'='%')
-    AND (AHV.DRT = '%' OR '%'='%')
-    
+    --AND (AHV.Id_solicitante = '%' OR '%'='%')
+    --AND (AHV.DRT = '29335%' OR '%'='%')
+    AND AHV.DRT LIKE '%29335%'
+    --  AND AHV.Id_solicitante = '28403'
 
 ORDER BY
     AHT.START_TIME_ DESC
