@@ -1,10 +1,14 @@
+SELECT * FROM (
 SELECT
-    SUBSTR(AHP.BUSINESS_KEY_, 22)AS CD_REGISTRO,
+    SUBSTR (AHP.BUSINESS_KEY_, INSTR(AHP.BUSINESS_KEY_,'-',1,1)+1)AS CD_REG,
+    DENSE_RANK() OVER (PARTITION BY AHV.NM_OPERADORA ORDER BY AHP.START_TIME_ DESC) AS NR_ORD,
+    PROC_DEF_KEY_,
     AHP.START_TIME_ AS DT_ABERTURA,
     AHP.END_TIME_ AS DT_FECHAMENTO,
     AHV.CD_DOC,
     AHV.CD_REGISTRANTE,
     (SELECT NM_USUARIO FROM DBASGU.USUARIOS WHERE CD_USUARIO = AHV.CD_REGISTRANTE) NM_REGISTRANTE,
+    CON.CD_CONVENIO,
     AHV.NM_OPERADORA,
     TO_DATE(SUBSTR(AHV.DT_NEGOCIACAO, 1, 10),'YYYY-MM-DD') DT_ABERTURA_NEGOCIACAO,
     REPLACE(AHV.NR_INDICE_NEG_AB, '%', '') AS NR_INDICE_NEG_AB,-- INDICE REFERENCIA DA TRATATIVA DA ABERTURA DE NEGOCIACOES
@@ -36,18 +40,19 @@ SELECT
 FROM
     (
         select
-            *
+        *
         from
             (
                 select
                     PROC_INST_ID_,
                     name_,
-                    TEXT_
+                    TEXT_,
+                    '1' AS NR_ORD
                 from
                     engine.act_hi_varinst
                 order by
                     2
-            ) ahv PIVOT (
+            ) eahv PIVOT (
                 MAX(TEXT_) FOR name_ IN (
                 'PAR_REGISTRY_ID' AS CD_DOC,
                 'INSTANCE_USER' AS CD_REGISTRANTE,
@@ -82,15 +87,22 @@ FROM
                 )
             )
     ) AHV,
-    ENGINE.ACT_HI_PROCINST AHP
+    ENGINE.ACT_HI_PROCINST AHP,
+    DBAMV.CONVENIO CON
 
 WHERE
     AHP.PROC_INST_ID_ = AHV.PROC_INST_ID_
+    AND CON.NM_CONVENIO = AHV.NM_OPERADORA
     AND AHP.START_TIME_ BETWEEN TO_DATE ('01/JAN/2024', 'DD/MM/YYYY')
     AND SYSDATE + 1
     AND AHP.PROC_DEF_KEY_ = 'NchMXoMztB7_Od_56ga5OE' --CODIGO DO SDK DO PROCESSO 
     AND AHP.STATE_ NOT IN ('EXTERNALLY_TERMINATED')
+    AND AHP.BUSINESS_KEY_ NOT LIKE ('%TESTE%')
+    --AND DENSE_RANK() OVER (PARTITION BY AHV.NM_OPERADORA ORDER BY AHV.DT_ENVPROPOSTA DESC) = 1
     
 ORDER BY
+    2,
     AHP.START_TIME_ DESC,
-    CD_REGISTRO
+    CD_REG
+    )
+    WHERE NR_ORD IN (1)
